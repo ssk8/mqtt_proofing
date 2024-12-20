@@ -72,8 +72,7 @@ def connect_mqtt():
 
 def change_set_temp(topic, message):
     global set_temp
-    if message:
-        set_temp = int(message)
+    set_temp = int(str(message)[2:4])
     print(f'new set_temp = {set_temp}')
 
 try:
@@ -83,30 +82,19 @@ try:
         client = connect_mqtt()
         client.set_callback(change_set_temp)
         client.subscribe(MQTT_TOPIC_SET)
-        
+        while True:
+            client.check_msg()
+            temperature, humidity, pressure = [float(m) for m in get_sensor_readings()]
+            if set_temp:
+                if temperature < set_temp:
+                    heater.value(0)
+                else:
+                    heater.value(1)
+            msg = f'temp:{temperature:.1f}C (set:{set_temp if set_temp else "--"}C), heater({heater.value()*'off),' or 'on), '} p:{round(pressure)}hPa, h:{round(humidity)}%'
+            client.publish(topic, msg)
+            print(msg)
+            sleep(sleep_time)
+
 except Exception as e:
+    heater.value(1)
     print('Error:', e)
-
-
-while ...:
-    try:
-        client.check_msg()
-    except Exception as e:
-        print('Error in checkmsg:', e)
-
-    temperature, humidity, pressure = get_sensor_readings()
-    if set_temp:
-        if float(temperature) < set_temp:
-            heater.value(0)
-        else:
-            heater.value(1)
-    msg = f'{temperature=}C (set@{set_temp}C), heater is {heater.value()*'off' or 'on'}, {pressure=}, {humidity=}'
-    print(msg)
-
-    try:
-        client.publish(topic, msg)
-
-    except Exception as e:
-        print('Error in pub msg:', e)
-    sleep(sleep_time)
-    
