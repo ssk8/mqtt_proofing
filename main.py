@@ -1,12 +1,13 @@
 from machine import Pin, I2C
-from time import sleep
+import time
+import json
 import network
 from umqtt.simple import MQTTClient
 import config
 import lib.BME280 as BME280
 
 topic = "pi_proofing"
-sleep_time = 5
+post_every = 30
 heater_pin = 22
 
 MQTT_TOPIC_TEMPERATURE = topic + '/temperature'
@@ -46,7 +47,7 @@ def initialize_wifi(ssid, password):
         if wlan.status() >= 3:
             break
         print('Waiting for Wi-Fi connection...')
-        sleep(1)
+        time.sleep(1)
 
     if wlan.status() != 3:
         return False
@@ -90,10 +91,10 @@ try:
                     heater.value(0)
                 else:
                     heater.value(1)
-            msg = f'temp:{temperature:.1f}C (set:{set_temp if set_temp else "--"}C), heater({heater.value()*'off),' or 'on), '} p:{round(pressure)}hPa, h:{round(humidity)}%'
-            client.publish(topic, msg)
-            print(msg)
-            sleep(sleep_time)
+            if time.time()%post_every < 3:
+                payload = {'temperature':temperature, 'set_temp': set_temp, 'heater': not heater.value(),'pressure':round(pressure), 'humidity':round(humidity)}
+                client.publish(topic, json.dumps(payload))
+            time.sleep(2)
 
 except Exception as e:
     heater.value(1)
