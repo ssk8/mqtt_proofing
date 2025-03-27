@@ -8,6 +8,8 @@ import lib.BME280 as BME280
 
 topic = "pi_proofing"
 post_every = 30
+temperature_differential = 0.5
+next_check = time.time() + post_every
 heater_pin = 22
 
 MQTT_TOPIC_TEMPERATURE = topic + '/temperature'
@@ -89,11 +91,12 @@ try:
             if set_temp:
                 if temperature < set_temp:
                     heater.value(0)
-                else:
+                elif temperature > (set_temp + temperature_differential):
                     heater.value(1)
-            if time.time()%post_every < 3:
+            if time.time() > next_check:
                 payload = {'temperature':temperature, 'set_temp': set_temp, 'heater': not heater.value(),'pressure':round(pressure), 'humidity':round(humidity)}
                 client.publish(topic, json.dumps(payload))
+                next_check+=post_every
             time.sleep(2)
 
 except Exception as e:
