@@ -1,14 +1,18 @@
+#!/usr/bin/python3
+
+
 import paho.mqtt.client as mqtt
-import datetime
 import json
+import datetime
 
 def on_connect(client, userdata, flags, reason_code, properties):
-    print(f"Connected with result code {reason_code}")
+    print(f"Connection: {reason_code}")
     client.subscribe("pi_proofing")
 
 def on_message(client, userdata, msg):
-    msg = json.loads(str(msg.payload)[2:-1])
-    print(f'{datetime.datetime.now().strftime("%a %H:%M:%S")} temp:{msg["temperature"]:.1f}C set:{msg["set_temp"]}C heater is {msg["heater"]*"on" or "off"}')
+    dt = datetime.datetime.now().strftime("%a %H:%M:%S") 
+    pl = json.loads(msg.payload)
+    print(f"{datetime.datetime.now().strftime('%a %H:%M:%S')} temp: {pl['temperature']}°C, heater is {('off', 'on')[pl['heater']]}, set temp:{pl['set_temp']}°C, humidity: {pl['humidity']}%")
 
 mqttc = mqtt.Client(mqtt.CallbackAPIVersion.VERSION2)
 mqttc.on_connect = on_connect
